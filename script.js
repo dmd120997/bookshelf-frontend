@@ -11,6 +11,33 @@ function saveBooks() {
 
 const container = document.getElementById("book-container");
 
+const form = document.getElementById("book-form");
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault(); 
+
+  const title = document.getElementById("title").value;
+  const author = document.getElementById("author").value;
+  const status = document.getElementById("status").value;
+
+  const newBook = {
+    title,
+    author,
+    status,
+  };
+
+  books.push(newBook);
+  saveBooks();
+
+  const currentFilter =
+    localStorage.getItem("selectedFilter") || "All";
+
+  renderBooks(currentFilter);
+  form.reset();
+});
+
+
+
 function renderBooks(filter = "All") {
   container.innerHTML = "";
 
@@ -27,12 +54,22 @@ function renderBooks(filter = "All") {
       <p>${book.author}</p>
       <p>Status: ${book.status}</p>
       <button class="status-btn">Toggle status</button>
+      <button class="delete-btn">Delete</button>
     `;
 
     const statusBtn = card.querySelector(".status-btn");
+    const deleteBtn = card.querySelector(".delete-btn");
 
-    statusBtn.addEventListener("click", () => {
-      book.status = book.status === "Read" ? "Reading" : "Read";
+  statusBtn.addEventListener("click", () => {
+  if (book.status === "Read") book.status = "Reading";
+  else if (book.status === "Reading") book.status = "Want to Read";
+  else book.status = "Read";
+
+  saveBooks();
+  renderBooks(filter);
+});
+    deleteBtn.addEventListener("click", () => {
+      books = books.filter(b => b !== book);
       saveBooks();
       renderBooks(filter);
     });
@@ -56,6 +93,9 @@ document.querySelectorAll(".filters button").forEach((btn) => {
     renderBooks(filter);
   });
 });
+
+
+
 
 const savedFilter = localStorage.getItem("selectedFilter") || "All";
 setActiveButton(savedFilter);
