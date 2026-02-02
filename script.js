@@ -1,23 +1,42 @@
-const books = [
+const defaultBooks = [
   { title: "The Hobbit", author: "J.R.R. Tolkien", status: "Reading" },
   { title: "Harry Potter", author: "J. Rowling", status: "Read" },
 ];
+
+let books = JSON.parse(localStorage.getItem("books")) || defaultBooks;
+
+function saveBooks() {
+  localStorage.setItem("books", JSON.stringify(books));
+}
 
 const container = document.getElementById("book-container");
 
 function renderBooks(filter = "All") {
   container.innerHTML = "";
+
   const filtered = books.filter((b) =>
-    filter === "All" ? true : b.status === filter,
+    filter === "All" ? true : b.status === filter
   );
+
   filtered.forEach((book) => {
     const card = document.createElement("div");
     card.className = "card";
+
     card.innerHTML = `
       <h3>${book.title}</h3>
       <p>${book.author}</p>
       <p>Status: ${book.status}</p>
+      <button class="status-btn">Toggle status</button>
     `;
+
+    const statusBtn = card.querySelector(".status-btn");
+
+    statusBtn.addEventListener("click", () => {
+      book.status = book.status === "Read" ? "Reading" : "Read";
+      saveBooks();
+      renderBooks(filter);
+    });
+
     container.appendChild(card);
   });
 }
