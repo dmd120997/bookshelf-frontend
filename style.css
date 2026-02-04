@@ -49,3 +49,10 @@ header {
   color: white;
   font-weight: bold;
 }
+
+.card input,
+.card select {
+  display: block;
+  margin-bottom: 8px;
+  width: 100%;
+}
