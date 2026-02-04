@@ -39,11 +39,12 @@ header {
   gap: 10px;
   flex-wrap: wrap;
 }
-/* #book-container {
+#book-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 15px;
-} */
+}
+
 .filters button.active {
   background: black;
   color: white;
@@ -55,4 +56,35 @@ header {
   display: block;
   margin-bottom: 8px;
   width: 100%;
+}
+
+.rating-stars span {
+  cursor: pointer;
+  font-size: 24px;
+  margin-right: 2px;
+}
+
+.rating-stars span:hover {
+  transform: scale(1.3);
+  color: gold;
+}
+
+.card button {
+  margin-right: 5px;
+  margin-top: 5px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: none;
+  background-color: #ddd;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.card button:hover {
+  background-color: #bbb;
+}
+
+.card h3,
+.card p {
+  margin: 5px 0;
 }

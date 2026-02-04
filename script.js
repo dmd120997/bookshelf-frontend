@@ -1,6 +1,18 @@
+const Status = {
+  READING: "Reading",
+  READ: "Read",
+  WANT_TO_READ: "Want to Read"
+};
+
+
 const defaultBooks = [
-  { title: "The Hobbit", author: "J.R.R. Tolkien", status: "Reading" },
-  { title: "Harry Potter", author: "J. Rowling", status: "Read" },
+  {
+    title: "The Hobbit",
+    author: "J.R.R. Tolkien",
+    status:  Status.READING,
+    rating: 0,
+  },
+  { title: "Harry Potter", author: "J. Rowling", status: Status.READ, rating: 0 },
 ];
 
 let books = JSON.parse(localStorage.getItem("books")) || defaultBooks;
@@ -24,6 +36,7 @@ form.addEventListener("submit", (e) => {
     title,
     author,
     status,
+    rating: 0,
   };
 
   books.push(newBook);
@@ -53,12 +66,44 @@ function renderBooks(filter = "All") {
       <button class="status-btn">Toggle status</button>
       <button class="delete-btn">Delete</button>
       <button class="edit-btn">Edit</button>
+     <p class="rating-text">
+  ${book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"}
+</p>
+
+
+<div class="rating-stars">
+  <span data-value="1">☆</span>
+  <span data-value="2">☆</span>
+  <span data-value="3">☆</span>
+  <span data-value="4">☆</span>
+  <span data-value="5">☆</span>
+</div>
+
     `;
 
     const statusBtn = card.querySelector(".status-btn");
     const editBtn = card.querySelector(".edit-btn");
-
     const deleteBtn = card.querySelector(".delete-btn");
+       const stars = card.querySelectorAll(".rating-stars span");
+
+function updateStars() {
+  stars.forEach(star => {
+    star.textContent = Number(star.dataset.value) <= book.rating ? "★" : "☆";
+  });
+  const ratingText = card.querySelector(".rating-text");
+  ratingText.textContent = book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐";
+}
+
+updateStars();
+
+stars.forEach(star => {
+  star.addEventListener("click", () => {
+    book.rating = Number(star.dataset.value);
+    saveBooks();
+    updateStars();
+  });
+});
+
 
     editBtn.addEventListener("click", () => {
       card.innerHTML = `
