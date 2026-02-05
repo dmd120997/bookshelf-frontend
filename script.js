@@ -1,61 +1,61 @@
 const Status = {
   READING: "Reading",
   READ: "Read",
-  WANT_TO_READ: "Want to Read"
+  WANT_TO_READ: "Want to Read",
 };
-
 
 const defaultBooks = [
   {
     title: "The Hobbit",
     author: "J.R.R. Tolkien",
-    status:  Status.READING,
+    status: Status.READING,
     rating: 0,
   },
-  { title: "Harry Potter", author: "J. Rowling", status: Status.READ, rating: 0 },
+  {
+    title: "Harry Potter",
+    author: "J. Rowling",
+    status: Status.READ,
+    rating: 0,
+  },
 ];
 
 let books = JSON.parse(localStorage.getItem("books")) || defaultBooks;
+let editingBook = null;
+
+const paginationEl = document.getElementById("pagination");
+
+let currentFilter = localStorage.getItem("currentFilter") || "All";
+let currentPage = Number(localStorage.getItem("currentPage")) || 1;
+const pageSize = 6;
+
+const container = document.getElementById("book-container");
+const form = document.getElementById("book-form");
+const submitBtn = form.querySelector('button[type="submit"]');
 
 function saveBooks() {
   localStorage.setItem("books", JSON.stringify(books));
 }
 
-const container = document.getElementById("book-container");
+function renderBooks(filter = currentFilter, page = currentPage) {
+  currentFilter = filter;
+  currentPage = page;
 
-const form = document.getElementById("book-form");
+  localStorage.setItem("currentFilter", currentFilter);
+  localStorage.setItem("currentPage", currentPage);
 
-form.addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  const title = document.getElementById("title").value;
-  const author = document.getElementById("author").value;
-  const status = document.getElementById("status").value;
-
-  const newBook = {
-    title,
-    author,
-    status,
-    rating: 0,
-  };
-
-  books.push(newBook);
-  saveBooks();
-
-  const currentFilter = localStorage.getItem("selectedFilter") || "All";
-
-  renderBooks(currentFilter);
-  form.reset();
-});
-
-function renderBooks(filter = "All") {
   container.innerHTML = "";
 
   const filtered = books.filter((b) =>
     filter === "All" ? true : b.status === filter,
   );
 
-  filtered.forEach((book) => {
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const start = (currentPage - 1) * pageSize;
+  const pageItems = filtered.slice(start, start + pageSize);
+
+  pageItems.forEach((book) => {
     const card = document.createElement("div");
     card.className = "card";
 
@@ -63,113 +63,141 @@ function renderBooks(filter = "All") {
       <h3>${book.title}</h3>
       <p>${book.author}</p>
       <p>Status: ${book.status}</p>
+
+      <p class="rating-text">${book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"}</p>
+
+      <div class="rating-stars">
+        <span data-value="1">☆</span>
+        <span data-value="2">☆</span>
+        <span data-value="3">☆</span>
+        <span data-value="4">☆</span>
+        <span data-value="5">☆</span>
+      </div>
+
       <button class="status-btn">Toggle status</button>
-      <button class="delete-btn">Delete</button>
       <button class="edit-btn">Edit</button>
-     <p class="rating-text">
-  ${book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"}
-</p>
-
-
-<div class="rating-stars">
-  <span data-value="1">☆</span>
-  <span data-value="2">☆</span>
-  <span data-value="3">☆</span>
-  <span data-value="4">☆</span>
-  <span data-value="5">☆</span>
-</div>
-
+      <button class="delete-btn">Delete</button>
     `;
 
-    const statusBtn = card.querySelector(".status-btn");
-    const editBtn = card.querySelector(".edit-btn");
-    const deleteBtn = card.querySelector(".delete-btn");
-       const stars = card.querySelectorAll(".rating-stars span");
+    const stars = card.querySelectorAll(".rating-stars span");
 
-function updateStars() {
-  stars.forEach(star => {
-    star.textContent = Number(star.dataset.value) <= book.rating ? "★" : "☆";
-  });
-  const ratingText = card.querySelector(".rating-text");
-  ratingText.textContent = book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐";
-}
+    function updateStars() {
+      stars.forEach((star) => {
+        star.textContent =
+          Number(star.dataset.value) <= book.rating ? "★" : "☆";
+      });
+      card.querySelector(".rating-text").textContent =
+        book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐";
+    }
 
-updateStars();
-
-stars.forEach(star => {
-  star.addEventListener("click", () => {
-    book.rating = Number(star.dataset.value);
-    saveBooks();
     updateStars();
-  });
-});
 
-
-    editBtn.addEventListener("click", () => {
-      card.innerHTML = `
-    <input class="edit-title" value="${book.title}" />
-    <input class="edit-author" value="${book.author}" />
-
-    <select class="edit-status">
-      <option value="Reading">Reading</option>
-      <option value="Read">Read</option>
-      <option value="Want to Read">Want to Read</option>
-    </select>
-
-    <button class="save-btn">Save</button>
-    <button class="cancel-btn">Cancel</button>
-  `;
-
-      card.querySelector(".edit-status").value = book.status;
-
-      card.querySelector(".save-btn").addEventListener("click", () => {
-        book.title = card.querySelector(".edit-title").value;
-        book.author = card.querySelector(".edit-author").value;
-        book.status = card.querySelector(".edit-status").value;
-
+    stars.forEach((star) => {
+      star.addEventListener("click", () => {
+        book.rating = Number(star.dataset.value);
         saveBooks();
-        renderBooks(filter);
-      });
-
-      card.querySelector(".cancel-btn").addEventListener("click", () => {
-        renderBooks(filter);
+        updateStars();
       });
     });
 
-    statusBtn.addEventListener("click", () => {
-      if (book.status === "Read") book.status = "Reading";
-      else if (book.status === "Reading") book.status = "Want to Read";
-      else book.status = "Read";
-
+    card.querySelector(".status-btn").addEventListener("click", () => {
+      if (book.status === Status.READ) book.status = Status.READING;
+      else if (book.status === Status.READING)
+        book.status = Status.WANT_TO_READ;
+      else book.status = Status.READ;
       saveBooks();
-      renderBooks(filter);
+      renderBooks(currentFilter, currentPage);
     });
-    deleteBtn.addEventListener("click", () => {
+
+    card.querySelector(".delete-btn").addEventListener("click", () => {
       books = books.filter((b) => b !== book);
+
+      if (editingBook === book) {
+        editingBook = null;
+        submitBtn.textContent = "Add book";
+        form.reset();
+      }
       saveBooks();
-      renderBooks(filter);
+      renderBooks(currentFilter, currentPage);
+    });
+    card.querySelector(".edit-btn").addEventListener("click", () => {
+      editingBook = book;
+
+      document.getElementById("title").value = book.title;
+      document.getElementById("author").value = book.author;
+      document.getElementById("status").value = book.status;
+
+      submitBtn.textContent = "Save";
+      document.getElementById("title").focus();
     });
 
     container.appendChild(card);
   });
+
+  renderPagination(totalPages);
+}
+function renderPagination(totalPages) {
+  paginationEl.innerHTML = "";
+
+  const prev = document.createElement("button");
+  prev.textContent = "Prev";
+  prev.disabled = currentPage === 1;
+  prev.addEventListener("click", () =>
+    renderBooks(currentFilter, currentPage - 1),
+  );
+  paginationEl.appendChild(prev);
+
+  for (let p = 1; p <= totalPages; p++) {
+    const btn = document.createElement("button");
+    btn.textContent = p;
+    if (p === currentPage) btn.classList.add("active");
+    btn.addEventListener("click", () => renderBooks(currentFilter, p));
+    paginationEl.appendChild(btn);
+  }
+
+  const next = document.createElement("button");
+  next.textContent = "Next";
+  next.disabled = currentPage === totalPages;
+  next.addEventListener("click", () =>
+    renderBooks(currentFilter, currentPage + 1),
+  );
+  paginationEl.appendChild(next);
 }
 
-function setActiveButton(filter) {
-  document.querySelectorAll(".filters button").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.filter === filter);
-  });
-}
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const title = document.getElementById("title").value.trim();
+  const author = document.getElementById("author").value.trim();
+  const status = document.getElementById("status").value;
+
+  if (editingBook) {
+    editingBook.title = title;
+    editingBook.author = author;
+    editingBook.status = status;
+
+    editingBook = null;
+    submitBtn.textContent = "Add book";
+  } else {
+    books.push({ title, author, status, rating: 0 });
+  }
+
+  saveBooks();
+  renderBooks(currentFilter, currentPage);
+  form.reset();
+});
 
 document.querySelectorAll(".filters button").forEach((btn) => {
+  if (btn.dataset.filter === currentFilter) {
+    btn.classList.add("active");
+  }
   btn.addEventListener("click", () => {
     const filter = btn.dataset.filter;
-
-    localStorage.setItem("selectedFilter", filter);
-    setActiveButton(filter);
-    renderBooks(filter);
+    document
+      .querySelectorAll(".filters button")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderBooks(filter, 1);
   });
 });
 
-const savedFilter = localStorage.getItem("selectedFilter") || "All";
-setActiveButton(savedFilter);
-renderBooks(savedFilter);
+renderBooks();
