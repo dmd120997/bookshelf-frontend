@@ -1,52 +1,47 @@
-const Status = {
-  READING: "Reading",
-  READ: "Read",
-  WANT_TO_READ: "Want to Read",
-};
+import { Status, defaultBooks } from "./constants.js";
+import {
+  loadBooks,
+  saveBooks as persistBooks,
+  loadUiState,
+  saveUiState,
+} from "./storage.js";
 
-const defaultBooks = [
-  {
-    title: "The Hobbit",
-    author: "J.R.R. Tolkien",
-    status: Status.READING,
-    rating: 0,
-  },
-  {
-    title: "Harry Potter",
-    author: "J. Rowling",
-    status: Status.READ,
-    rating: 0,
-  },
-];
 
-let books = JSON.parse(localStorage.getItem("books")) || defaultBooks;
+let books = loadBooks(defaultBooks);
 let editingBook = null;
 
-const paginationEl = document.getElementById("pagination");
-
-let currentFilter = localStorage.getItem("currentFilter") || "All";
-let currentPage = Number(localStorage.getItem("currentPage")) || 1;
+let { currentFilter, currentPage } = loadUiState();
 const pageSize = 6;
+
 
 const container = document.getElementById("book-container");
 const form = document.getElementById("book-form");
 const submitBtn = form.querySelector('button[type="submit"]');
+const paginationEl = document.getElementById("pagination");
+
 
 function saveBooks() {
-  localStorage.setItem("books", JSON.stringify(books));
+  persistBooks(books);
 }
+
+function setActiveFilterButton(filter) {
+  document.querySelectorAll(".filters button").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.filter === filter);
+  });
+}
+
 
 function renderBooks(filter = currentFilter, page = currentPage) {
   currentFilter = filter;
   currentPage = page;
 
-  localStorage.setItem("currentFilter", currentFilter);
-  localStorage.setItem("currentPage", currentPage);
+  
+  saveUiState({ currentFilter, currentPage });
 
   container.innerHTML = "";
 
   const filtered = books.filter((b) =>
-    filter === "All" ? true : b.status === filter,
+    filter === "All" ? true : b.status === filter
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -64,7 +59,9 @@ function renderBooks(filter = currentFilter, page = currentPage) {
       <p>${book.author}</p>
       <p>Status: ${book.status}</p>
 
-      <p class="rating-text">${book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"}</p>
+      <p class="rating-text">${
+        book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"
+      }</p>
 
       <div class="rating-stars">
         <span data-value="1">☆</span>
@@ -86,12 +83,14 @@ function renderBooks(filter = currentFilter, page = currentPage) {
         star.textContent =
           Number(star.dataset.value) <= book.rating ? "★" : "☆";
       });
+
       card.querySelector(".rating-text").textContent =
         book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐";
     }
 
     updateStars();
 
+    
     stars.forEach((star) => {
       star.addEventListener("click", () => {
         book.rating = Number(star.dataset.value);
@@ -100,15 +99,17 @@ function renderBooks(filter = currentFilter, page = currentPage) {
       });
     });
 
+    
     card.querySelector(".status-btn").addEventListener("click", () => {
       if (book.status === Status.READ) book.status = Status.READING;
-      else if (book.status === Status.READING)
-        book.status = Status.WANT_TO_READ;
+      else if (book.status === Status.READING) book.status = Status.WANT_TO_READ;
       else book.status = Status.READ;
+
       saveBooks();
       renderBooks(currentFilter, currentPage);
     });
 
+    
     card.querySelector(".delete-btn").addEventListener("click", () => {
       books = books.filter((b) => b !== book);
 
@@ -117,9 +118,12 @@ function renderBooks(filter = currentFilter, page = currentPage) {
         submitBtn.textContent = "Add book";
         form.reset();
       }
+
       saveBooks();
       renderBooks(currentFilter, currentPage);
     });
+
+    
     card.querySelector(".edit-btn").addEventListener("click", () => {
       editingBook = book;
 
@@ -136,6 +140,7 @@ function renderBooks(filter = currentFilter, page = currentPage) {
 
   renderPagination(totalPages);
 }
+
 function renderPagination(totalPages) {
   paginationEl.innerHTML = "";
 
@@ -143,14 +148,14 @@ function renderPagination(totalPages) {
   prev.textContent = "Prev";
   prev.disabled = currentPage === 1;
   prev.addEventListener("click", () =>
-    renderBooks(currentFilter, currentPage - 1),
+    renderBooks(currentFilter, currentPage - 1)
   );
   paginationEl.appendChild(prev);
 
   for (let p = 1; p <= totalPages; p++) {
     const btn = document.createElement("button");
     btn.textContent = p;
-    if (p === currentPage) btn.classList.add("active");
+    btn.classList.toggle("active", p === currentPage);
     btn.addEventListener("click", () => renderBooks(currentFilter, p));
     paginationEl.appendChild(btn);
   }
@@ -159,16 +164,20 @@ function renderPagination(totalPages) {
   next.textContent = "Next";
   next.disabled = currentPage === totalPages;
   next.addEventListener("click", () =>
-    renderBooks(currentFilter, currentPage + 1),
+    renderBooks(currentFilter, currentPage + 1)
   );
   paginationEl.appendChild(next);
 }
 
+
 form.addEventListener("submit", (e) => {
   e.preventDefault();
+
   const title = document.getElementById("title").value.trim();
   const author = document.getElementById("author").value.trim();
   const status = document.getElementById("status").value;
+
+  if (!title || !author) return;
 
   if (editingBook) {
     editingBook.title = title;
@@ -187,17 +196,13 @@ form.addEventListener("submit", (e) => {
 });
 
 document.querySelectorAll(".filters button").forEach((btn) => {
-  if (btn.dataset.filter === currentFilter) {
-    btn.classList.add("active");
-  }
   btn.addEventListener("click", () => {
     const filter = btn.dataset.filter;
-    document
-      .querySelectorAll(".filters button")
-      .forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
+    setActiveFilterButton(filter);
     renderBooks(filter, 1);
   });
 });
 
-renderBooks();
+
+setActiveFilterButton(currentFilter);
+renderBooks(currentFilter, currentPage);
