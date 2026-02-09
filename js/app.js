@@ -10,7 +10,7 @@ let books = loadBooks(defaultBooks);
 let editingBook = null;
 
 let { currentFilter, currentPage } = loadUiState();
-const pageSize = 6;
+const pageSize = 5;
 
 const container = document.getElementById("book-container");
 const form = document.getElementById("book-form");
@@ -73,8 +73,11 @@ function renderBooks(filter = currentFilter, page = currentPage) {
       </div>
 
       
-      <button class="edit-btn">Edit</button>
-      <button class="delete-btn">Delete</button>
+      <div class="card-actions">
+  <button class="icon-btn edit-btn" title="Edit">✏️</button>
+  <button class="icon-btn delete-btn" title="Delete">🗑️</button>
+</div>
+
     `;
 
     card.addEventListener("dblclick", (e) => {
@@ -127,16 +130,11 @@ function renderBooks(filter = currentFilter, page = currentPage) {
       renderBooks(currentFilter, currentPage);
     });
 
-    card.querySelector(".edit-btn").addEventListener("click", () => {
-      editingBook = book;
+    card.querySelector(".edit-btn").addEventListener("click", (e) => {
+  e.stopPropagation(); 
+  enterInlineEdit(card, book);
+});
 
-      document.getElementById("title").value = book.title;
-      document.getElementById("author").value = book.author;
-      document.getElementById("status").value = book.status;
-
-      submitBtn.textContent = "Save";
-      document.getElementById("title").focus();
-    });
 
     container.appendChild(card);
   });
