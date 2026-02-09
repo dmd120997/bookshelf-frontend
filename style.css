@@ -336,3 +336,20 @@ button {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.55);
 }
+
+.grid {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 1199px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}

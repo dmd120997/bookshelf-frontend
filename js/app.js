@@ -131,10 +131,9 @@ function renderBooks(filter = currentFilter, page = currentPage) {
     });
 
     card.querySelector(".edit-btn").addEventListener("click", (e) => {
-  e.stopPropagation(); 
-  enterInlineEdit(card, book);
-});
-
+      e.stopPropagation();
+      enterInlineEdit(card, book);
+    });
 
     container.appendChild(card);
   });
@@ -145,38 +144,89 @@ function renderBooks(filter = currentFilter, page = currentPage) {
 function renderPagination(totalPages) {
   paginationEl.innerHTML = "";
 
-  const prev = document.createElement("button");
-  prev.textContent = "Prev";
-  prev.disabled = currentPage === 1;
-  prev.addEventListener("click", () =>
-    renderBooks(currentFilter, currentPage - 1),
-  );
-  paginationEl.appendChild(prev);
-
-  for (let p = 1; p <= totalPages; p++) {
+  const createBtn = (
+    label,
+    onClick,
+    { active = false, disabled = false } = {},
+  ) => {
     const btn = document.createElement("button");
-    btn.textContent = p;
-    btn.classList.toggle("active", p === currentPage);
-    btn.addEventListener("click", () => renderBooks(currentFilter, p));
-    paginationEl.appendChild(btn);
+    btn.textContent = label;
+    if (active) btn.classList.add("active");
+    btn.disabled = disabled;
+    btn.addEventListener("click", onClick);
+    return btn;
+  };
+
+  const createDots = () => {
+    const span = document.createElement("span");
+    span.textContent = "...";
+    span.className = "dots";
+    return span;
+  };
+
+  paginationEl.appendChild(
+    createBtn("Prev", () => renderBooks(currentFilter, currentPage - 1), {
+      disabled: currentPage === 1,
+    }),
+  );
+
+  if (totalPages <= 5) {
+    for (let p = 1; p <= totalPages; p++) {
+      paginationEl.appendChild(
+        createBtn(String(p), () => renderBooks(currentFilter, p), {
+          active: p === currentPage,
+        }),
+      );
+    }
+
+    paginationEl.appendChild(
+      createBtn("Next", () => renderBooks(currentFilter, currentPage + 1), {
+        disabled: currentPage === totalPages,
+      }),
+    );
+    return;
   }
 
-  const next = document.createElement("button");
-  next.textContent = "Next";
-  next.disabled = currentPage === totalPages;
-  next.addEventListener("click", () =>
-    renderBooks(currentFilter, currentPage + 1),
+  paginationEl.appendChild(
+    createBtn("1", () => renderBooks(currentFilter, 1), {
+      active: currentPage === 1,
+    }),
   );
-  paginationEl.appendChild(next);
-}
 
-function escapeHtml(str) {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  const leftWindowStart = Math.max(2, currentPage - 1);
+  const leftWindowHasGap = leftWindowStart > 2;
+  if (leftWindowHasGap) paginationEl.appendChild(createDots());
+
+  const windowStart = Math.max(2, currentPage - 1);
+  const windowEnd = Math.min(totalPages - 1, currentPage + 1);
+
+  for (let p = windowStart; p <= windowEnd; p++) {
+    paginationEl.appendChild(
+      createBtn(String(p), () => renderBooks(currentFilter, p), {
+        active: p === currentPage,
+      }),
+    );
+  }
+
+  const rightWindowEnd = Math.min(totalPages - 1, currentPage + 1);
+  const rightWindowHasGap = rightWindowEnd < totalPages - 1;
+  if (rightWindowHasGap) paginationEl.appendChild(createDots());
+
+  paginationEl.appendChild(
+    createBtn(
+      String(totalPages),
+      () => renderBooks(currentFilter, totalPages),
+      {
+        active: currentPage === totalPages,
+      },
+    ),
+  );
+
+  paginationEl.appendChild(
+    createBtn("Next", () => renderBooks(currentFilter, currentPage + 1), {
+      disabled: currentPage === totalPages,
+    }),
+  );
 }
 
 function enterInlineEdit(card, book) {
@@ -296,7 +346,21 @@ form.addEventListener("submit", (e) => {
     editingBook = null;
     submitBtn.textContent = "Add book";
   } else {
-    books.push({ title, author, status, rating: 0 });
+    const newBook = { title, author, status, rating: 0 };
+    books.push(newBook);
+
+    saveBooks();
+
+    const filtered = books.filter((b) =>
+      currentFilter === "All" ? true : b.status === currentFilter,
+    );
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    currentPage = totalPages;
+
+    renderBooks(currentFilter, currentPage);
+    form.reset();
+    return;
   }
 
   saveBooks();
@@ -320,8 +384,7 @@ if (themeToggle) {
   themeToggle.textContent = savedTheme === "dark" ? "🌙" : "☀️";
 
   themeToggle.addEventListener("click", () => {
-    const nextTheme =
-      document.body.dataset.theme === "dark" ? "light" : "dark";
+    const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
 
     document.body.dataset.theme = nextTheme;
     localStorage.setItem("theme", nextTheme);
@@ -329,9 +392,5 @@ if (themeToggle) {
   });
 }
 
-
 setActiveFilterButton(currentFilter);
 renderBooks(currentFilter, currentPage);
-
-
-
