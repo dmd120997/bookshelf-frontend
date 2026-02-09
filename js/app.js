@@ -6,19 +6,16 @@ import {
   saveUiState,
 } from "./storage.js";
 
-
 let books = loadBooks(defaultBooks);
 let editingBook = null;
 
 let { currentFilter, currentPage } = loadUiState();
 const pageSize = 6;
 
-
 const container = document.getElementById("book-container");
 const form = document.getElementById("book-form");
 const submitBtn = form.querySelector('button[type="submit"]');
 const paginationEl = document.getElementById("pagination");
-
 
 function saveBooks() {
   persistBooks(books);
@@ -30,18 +27,16 @@ function setActiveFilterButton(filter) {
   });
 }
 
-
 function renderBooks(filter = currentFilter, page = currentPage) {
   currentFilter = filter;
   currentPage = page;
 
-  
   saveUiState({ currentFilter, currentPage });
 
   container.innerHTML = "";
 
   const filtered = books.filter((b) =>
-    filter === "All" ? true : b.status === filter
+    filter === "All" ? true : b.status === filter,
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -57,11 +52,17 @@ function renderBooks(filter = currentFilter, page = currentPage) {
     card.innerHTML = `
       <h3>${book.title}</h3>
       <p>${book.author}</p>
-      <p>Status: ${book.status}</p>
+      
 
       <p class="rating-text">${
         book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"
       }</p>
+
+     <div class="status-row">
+  <span class="badge badge--${book.status.split(" ").join("-")}">${book.status}</span>
+</div>
+
+
 
       <div class="rating-stars">
         <span data-value="1">☆</span>
@@ -71,10 +72,25 @@ function renderBooks(filter = currentFilter, page = currentPage) {
         <span data-value="5">☆</span>
       </div>
 
-      <button class="status-btn">Toggle status</button>
+      
       <button class="edit-btn">Edit</button>
       <button class="delete-btn">Delete</button>
     `;
+
+    card.addEventListener("dblclick", (e) => {
+      if (
+        e.target.closest("button") ||
+        e.target.closest(".rating-stars") ||
+        e.target.closest("select")
+      )
+        return;
+
+      editingBook = null;
+      submitBtn.textContent = "Add book";
+      form.reset();
+
+      enterInlineEdit(card, book);
+    });
 
     const stars = card.querySelectorAll(".rating-stars span");
 
@@ -90,7 +106,6 @@ function renderBooks(filter = currentFilter, page = currentPage) {
 
     updateStars();
 
-    
     stars.forEach((star) => {
       star.addEventListener("click", () => {
         book.rating = Number(star.dataset.value);
@@ -99,17 +114,6 @@ function renderBooks(filter = currentFilter, page = currentPage) {
       });
     });
 
-    
-    card.querySelector(".status-btn").addEventListener("click", () => {
-      if (book.status === Status.READ) book.status = Status.READING;
-      else if (book.status === Status.READING) book.status = Status.WANT_TO_READ;
-      else book.status = Status.READ;
-
-      saveBooks();
-      renderBooks(currentFilter, currentPage);
-    });
-
-    
     card.querySelector(".delete-btn").addEventListener("click", () => {
       books = books.filter((b) => b !== book);
 
@@ -123,7 +127,6 @@ function renderBooks(filter = currentFilter, page = currentPage) {
       renderBooks(currentFilter, currentPage);
     });
 
-    
     card.querySelector(".edit-btn").addEventListener("click", () => {
       editingBook = book;
 
@@ -148,7 +151,7 @@ function renderPagination(totalPages) {
   prev.textContent = "Prev";
   prev.disabled = currentPage === 1;
   prev.addEventListener("click", () =>
-    renderBooks(currentFilter, currentPage - 1)
+    renderBooks(currentFilter, currentPage - 1),
   );
   paginationEl.appendChild(prev);
 
@@ -164,11 +167,119 @@ function renderPagination(totalPages) {
   next.textContent = "Next";
   next.disabled = currentPage === totalPages;
   next.addEventListener("click", () =>
-    renderBooks(currentFilter, currentPage + 1)
+    renderBooks(currentFilter, currentPage + 1),
   );
   paginationEl.appendChild(next);
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function enterInlineEdit(card, book) {
+  if (card.dataset.editing === "1") return;
+
+  card.dataset.editing = "1";
+  card.classList.add("editing");
+
+  const prev = { title: book.title, author: book.author, status: book.status };
+
+  const editor = document.createElement("div");
+  editor.className = "inline-editor";
+  editor.innerHTML = `
+    <input class="edit-title" type="text" value="${escapeHtml(book.title)}" />
+    <input class="edit-author" type="text" value="${escapeHtml(book.author)}" />
+    <select class="edit-status">
+      <option value="Reading">Reading</option>
+      <option value="Read">Read</option>
+      <option value="Want to Read">Want to Read</option>
+    </select>
+
+    <div class="inline-actions">
+      <button class="inline-save">Save</button>
+      <button class="inline-cancel">Cancel</button>
+    </div>
+  `;
+
+  editor.querySelector(".edit-status").value = book.status;
+  card.prepend(editor);
+
+  const titleInput = editor.querySelector(".edit-title");
+  const authorInput = editor.querySelector(".edit-author");
+  const statusSelect = editor.querySelector(".edit-status");
+
+  const controller = new AbortController();
+
+  const cleanup = () => {
+    controller.abort();
+    card.dataset.editing = "0";
+    card.classList.remove("editing");
+    editor.remove();
+  };
+
+  const save = () => {
+    const title = titleInput.value.trim();
+    const author = authorInput.value.trim();
+    const status = statusSelect.value;
+
+    if (!title || !author) {
+      alert("Title and author are required");
+      return;
+    }
+
+    book.title = title;
+    book.author = author;
+    book.status = status;
+
+    saveBooks();
+    renderBooks(currentFilter, currentPage);
+  };
+
+  const cancel = () => {
+    book.title = prev.title;
+    book.author = prev.author;
+    book.status = prev.status;
+    cleanup();
+  };
+
+  editor.addEventListener("pointerdown", (e) => e.stopPropagation(), {
+    signal: controller.signal,
+  });
+
+  document.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (!card.contains(e.target)) {
+        cancel(); // save() for saving
+      }
+    },
+    { capture: true, signal: controller.signal },
+  );
+
+  editor
+    .querySelector(".inline-save")
+    .addEventListener("click", save, { signal: controller.signal });
+  editor
+    .querySelector(".inline-cancel")
+    .addEventListener("click", cancel, { signal: controller.signal });
+
+  editor.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key === "Enter") save();
+      if (e.key === "Escape") cancel();
+    },
+    { signal: controller.signal },
+  );
+
+  titleInput.focus();
+  titleInput.select();
+}
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -203,6 +314,26 @@ document.querySelectorAll(".filters button").forEach((btn) => {
   });
 });
 
+const themeToggle = document.getElementById("theme-toggle");
+
+if (themeToggle) {
+  const savedTheme = localStorage.getItem("theme") || "dark";
+  document.body.dataset.theme = savedTheme;
+  themeToggle.textContent = savedTheme === "dark" ? "🌙" : "☀️";
+
+  themeToggle.addEventListener("click", () => {
+    const nextTheme =
+      document.body.dataset.theme === "dark" ? "light" : "dark";
+
+    document.body.dataset.theme = nextTheme;
+    localStorage.setItem("theme", nextTheme);
+    themeToggle.textContent = nextTheme === "dark" ? "🌙" : "☀️";
+  });
+}
+
 
 setActiveFilterButton(currentFilter);
 renderBooks(currentFilter, currentPage);
+
+
+
