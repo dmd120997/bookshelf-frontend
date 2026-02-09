@@ -22,17 +22,25 @@
         </button>
       </div>
 
-      <form id="book-form" class="book-form">
+      <div class="add-bar">
+        <button id="open-add" class="primary">+ Add book</button>
+      </div>
+
+      <form id="book-form" class="book-form is-hidden">
         <input type="text" id="title" placeholder="Book title" required />
         <input type="text" id="author" placeholder="Author" required />
-
+        
         <select id="status">
           <option value="Reading">Reading</option>
           <option value="Read">Read</option>
           <option value="Want to Read">Want to Read</option>
         </select>
-
-        <button type="submit">Add book</button>
+        
+        <div class="form-actions">
+          <button type="submit">Save</button>
+          <button type="button" id="cancel-add" class="btn-danger">Cancel</button>
+        </div>
+        
       </form>
     </header>
 

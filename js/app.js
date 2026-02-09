@@ -16,6 +16,39 @@ const container = document.getElementById("book-container");
 const form = document.getElementById("book-form");
 const submitBtn = form.querySelector('button[type="submit"]');
 const paginationEl = document.getElementById("pagination");
+const openAddBtn = document.getElementById("open-add");
+const cancelAddBtn = document.getElementById("cancel-add");
+
+if (openAddBtn) {
+  openAddBtn.addEventListener("click", () => {
+    form.classList.remove("is-hidden");
+    openAddBtn.style.display = "none";
+    document.getElementById("title").focus();
+  });
+}
+
+if (cancelAddBtn) {
+  cancelAddBtn.addEventListener("click", () => {
+    form.classList.add("is-hidden");
+    if (openAddBtn) openAddBtn.style.display = "inline-flex";
+    form.reset();
+    form.classList.add("is-hidden");
+    if (openAddBtn) openAddBtn.style.display = "inline-flex";
+  });
+}
+
+document.addEventListener("pointerdown", (e) => {
+  if (!form || form.classList.contains("is-hidden")) return;
+
+  const clickedInsideForm = form.contains(e.target);
+  const clickedAddButton = openAddBtn && openAddBtn.contains(e.target);
+
+  if (!clickedInsideForm && !clickedAddButton) {
+    form.classList.add("is-hidden");
+    if (openAddBtn) openAddBtn.style.display = "inline-flex";
+    form.reset();
+  }
+});
 
 function saveBooks() {
   persistBooks(books);
