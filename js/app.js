@@ -262,6 +262,20 @@ function renderPagination(totalPages) {
   );
 }
 
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => {
+    const map = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return map[c];
+  });
+}
+
+
 function enterInlineEdit(card, book) {
   if (card.dataset.editing === "1") return;
 
@@ -273,19 +287,21 @@ function enterInlineEdit(card, book) {
   const editor = document.createElement("div");
   editor.className = "inline-editor";
   editor.innerHTML = `
-    <input class="edit-title" type="text" value="${escapeHtml(book.title)}" />
-    <input class="edit-author" type="text" value="${escapeHtml(book.author)}" />
-    <select class="edit-status">
-      <option value="Reading">Reading</option>
-      <option value="Read">Read</option>
-      <option value="Want to Read">Want to Read</option>
-    </select>
+  <input class="edit-title input" type="text" value="${escapeHtml(book.title)}" />
+  <input class="edit-author input" type="text" value="${escapeHtml(book.author)}" />
 
-    <div class="inline-actions">
-      <button class="inline-save">Save</button>
-      <button class="inline-cancel">Cancel</button>
-    </div>
-  `;
+  <select class="edit-status select">
+    <option value="Reading">Reading</option>
+    <option value="Read">Read</option>
+    <option value="Want to Read">Want to Read</option>
+  </select>
+
+  <div class="inline-actions">
+    <button class="inline-save btn btn--primary">Save</button>
+    <button class="inline-cancel btn">Cancel</button>
+  </div>
+`;
+
 
   editor.querySelector(".edit-status").value = book.status;
   card.prepend(editor);
