@@ -83,35 +83,36 @@ function renderBooks(filter = currentFilter, page = currentPage) {
     card.className = "card";
 
     card.innerHTML = `
-      <h3>${book.title}</h3>
-      <p>${book.author}</p>
-      
+  <div class="card-main">
+    <h3>${book.title}</h3>
+    <p>${book.author}</p>
+    <p class="rating-text">${
+      book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"
+    }</p>
+  </div>
 
-      <p class="rating-text">${
-        book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"
-      }</p>
+  <div class="card-spacer"></div>
 
-     <div class="status-row">
-  <span class="badge badge--${book.status.split(" ").join("-")}">${book.status}</span>
-</div>
+  <div class="card-meta">
+    <div class="status-row">
+      <span class="badge badge--${book.status.split(" ").join("-")}">${book.status}</span>
+    </div>
 
+    <div class="rating-stars">
+      <span data-value="1">☆</span>
+      <span data-value="2">☆</span>
+      <span data-value="3">☆</span>
+      <span data-value="4">☆</span>
+      <span data-value="5">☆</span>
+    </div>
+  </div>
 
+  <div class="card-actions">
+    <button class="icon-btn edit-btn" title="Edit">✏️</button>
+    <button class="icon-btn delete-btn" title="Delete">🗑️</button>
+  </div>
+`;
 
-      <div class="rating-stars">
-        <span data-value="1">☆</span>
-        <span data-value="2">☆</span>
-        <span data-value="3">☆</span>
-        <span data-value="4">☆</span>
-        <span data-value="5">☆</span>
-      </div>
-
-      
-      <div class="card-actions">
-  <button class="icon-btn edit-btn" title="Edit">✏️</button>
-  <button class="icon-btn delete-btn" title="Delete">🗑️</button>
-</div>
-
-    `;
 
     card.addEventListener("dblclick", (e) => {
       if (

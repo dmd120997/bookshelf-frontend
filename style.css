@@ -212,6 +212,9 @@ body {
 }
 
 .card {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 10px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -221,6 +224,51 @@ body {
     transform 0.12s,
     border-color 0.2s,
     background 0.2s;
+}
+
+.card-main {
+  display: grid;
+  grid-template-rows: 56px 26px 26px;
+  gap: 8px;
+}
+
+.card-main h3 {
+  margin: 0;
+  line-height: 1.2;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.card-main p {
+  margin: 0;
+}
+
+.card-main .rating-text {
+  margin: 0;
+}
+
+.card-spacer {
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.card-meta {
+  display: grid;
+  grid-template-rows: 28px 22px;
+  gap: 6px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+}
+.rating-stars {
+  display: flex;
+  align-items: center;
 }
 
 .rating-stars {
@@ -406,6 +454,21 @@ body,
 button:focus-visible,
 .book-form input:focus-visible,
 .book-form select:focus-visible {
+  outline: 3px solid rgba(124, 58, 237, 0.35);
+  outline-offset: 2px;
+}
+
+.icon-btn {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.icon-btn:focus {
+  outline: none;
+}
+
+.icon-btn:focus-visible {
   outline: 3px solid rgba(124, 58, 237, 0.35);
   outline-offset: 2px;
 }
