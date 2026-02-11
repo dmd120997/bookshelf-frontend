@@ -132,17 +132,13 @@ function renderBooks(filter = currentFilter, page = currentPage) {
     const stars = card.querySelectorAll(".rating-stars span");
 
     function updateStars() {
-      stars.forEach((star) => {
-        const val = Number(star.dataset.value);
+  stars.forEach((star) => {
+    const value = Number(star.dataset.value);
+    star.textContent = value <= book.rating ? "★" : "☆";
+    star.classList.toggle("active", value <= book.rating);
+  });
+}
 
-        star.textContent = val <= book.rating ? "★" : "☆";
-
-        star.classList.toggle("active", val <= book.rating);
-      });
-
-      card.querySelector(".rating-text").textContent =
-        book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐";
-    }
 
     updateStars();
 
