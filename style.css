@@ -548,3 +548,13 @@ body:not([data-theme="light"]) .rating-stars span.active {
       scale(1);
   }
 }
+
+.rating-stars.is-disabled span {
+  pointer-events: none;
+}
+
+.rating-stars.is-disabled {
+  opacity: 0.45;
+  filter: grayscale(0.2);
+  cursor: not-allowed;
+}

@@ -130,20 +130,42 @@ function renderBooks(filter = currentFilter, page = currentPage) {
 
     const starsWrap = card.querySelector(".rating-stars");
     const stars = card.querySelectorAll(".rating-stars span");
+    const isRatingDisabled = () => book.status === Status.WANT_TO_READ;
+
+    function updateRatingDisabledUI() {
+      starsWrap.classList.toggle("is-disabled", isRatingDisabled());
+
+      if (isRatingDisabled()) {
+        book.rating = 0;
+      }
+    }
 
     function updateStars() {
-  stars.forEach((star) => {
-    const value = Number(star.dataset.value);
-    star.textContent = value <= book.rating ? "★" : "☆";
-    star.classList.toggle("active", value <= book.rating);
-  });
-}
+      const disabled = isRatingDisabled();
+      const effectiveRating = disabled ? 0 : book.rating;
 
+      starsWrap.classList.toggle("is-disabled", disabled);
 
+      stars.forEach((star) => {
+        const value = Number(star.dataset.value);
+        star.textContent = value <= effectiveRating ? "★" : "☆";
+        star.classList.toggle("active", value <= effectiveRating);
+      });
+
+      card.querySelector(".rating-text").textContent =
+        effectiveRating > 0 ? `${effectiveRating} / 5 ⭐` : "not rated ⭐";
+    }
+
+    if (book.status === Status.WANT_TO_READ) {
+      book.rating = 0;
+    }
+    updateRatingDisabledUI();
     updateStars();
 
     stars.forEach((star) => {
       star.addEventListener("click", () => {
+        if (isRatingDisabled()) return;
+
         book.rating = Number(star.dataset.value);
         saveBooks();
         updateStars();
@@ -158,6 +180,8 @@ function renderBooks(filter = currentFilter, page = currentPage) {
 
     stars.forEach((star) => {
       star.addEventListener("mouseenter", () => {
+        if (isRatingDisabled()) return;
+
         const hovered = Number(star.dataset.value);
         starsWrap.classList.add("hovering");
 
@@ -169,16 +193,10 @@ function renderBooks(filter = currentFilter, page = currentPage) {
     });
 
     starsWrap.addEventListener("mouseleave", () => {
+      if (isRatingDisabled()) return;
+
       starsWrap.classList.remove("hovering");
       stars.forEach((s) => s.classList.remove("hover"));
-    });
-
-    stars.forEach((star) => {
-      star.addEventListener("click", () => {
-        book.rating = Number(star.dataset.value);
-        saveBooks();
-        updateStars();
-      });
     });
 
     card.querySelector(".delete-btn").addEventListener("click", () => {
@@ -189,6 +207,8 @@ function renderBooks(filter = currentFilter, page = currentPage) {
         submitBtn.textContent = "Add book";
         form.reset();
       }
+
+      updateRatingDisabledUI();
 
       saveBooks();
       renderBooks(currentFilter, currentPage);
@@ -387,16 +407,18 @@ function enterInlineEdit(card, book) {
     const author = authorInput.value.trim();
     const status = statusSelect.value;
 
-    if (!title || !author) {
-      alert("Title and author are required");
-      return;
-    }
+    if (!title || !author) return;
 
     book.title = title;
     book.author = author;
     book.status = status;
+    
+    if (book.status === Status.WANT_TO_READ) {
+      book.rating = 0;
+    }
 
     saveBooks();
+    cleanup();
     renderBooks(currentFilter, currentPage);
   };
 
