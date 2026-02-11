@@ -291,17 +291,18 @@ function enterInlineEdit(card, book) {
   <input class="edit-title input" type="text" value="${escapeHtml(book.title)}" />
   <input class="edit-author input" type="text" value="${escapeHtml(book.author)}" />
 
-  <select class="edit-status select">
+  <select class="edit-status input">
     <option value="Reading">Reading</option>
     <option value="Read">Read</option>
     <option value="Want to Read">Want to Read</option>
   </select>
 
   <div class="inline-actions">
-    <button class="inline-save btn btn--primary">Save</button>
-    <button class="inline-cancel btn">Cancel</button>
+    <button class="btn-primary inline-save" type="button">Save</button>
+    <button class="btn-danger inline-cancel" type="button">Cancel</button>
   </div>
 `;
+
 
 
   editor.querySelector(".edit-status").value = book.status;

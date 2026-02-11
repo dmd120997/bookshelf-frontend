@@ -472,3 +472,37 @@ button:focus-visible,
   outline: 3px solid rgba(124, 58, 237, 0.35);
   outline-offset: 2px;
 }
+
+.inline-editor {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.inline-editor .input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+}
+
+.inline-editor .input::placeholder {
+  color: var(--placeholder);
+}
+
+.inline-editor .input:focus {
+  border-color: rgba(124, 58, 237, 0.9);
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
+}
+
+.inline-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
