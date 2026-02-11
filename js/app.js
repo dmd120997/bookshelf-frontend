@@ -113,7 +113,6 @@ function renderBooks(filter = currentFilter, page = currentPage) {
   </div>
 `;
 
-
     card.addEventListener("dblclick", (e) => {
       if (
         e.target.closest("button") ||
@@ -129,12 +128,16 @@ function renderBooks(filter = currentFilter, page = currentPage) {
       enterInlineEdit(card, book);
     });
 
+    const starsWrap = card.querySelector(".rating-stars");
     const stars = card.querySelectorAll(".rating-stars span");
 
     function updateStars() {
       stars.forEach((star) => {
-        star.textContent =
-          Number(star.dataset.value) <= book.rating ? "★" : "☆";
+        const val = Number(star.dataset.value);
+
+        star.textContent = val <= book.rating ? "★" : "☆";
+
+        star.classList.toggle("active", val <= book.rating);
       });
 
       card.querySelector(".rating-text").textContent =
@@ -142,6 +145,37 @@ function renderBooks(filter = currentFilter, page = currentPage) {
     }
 
     updateStars();
+
+    stars.forEach((star) => {
+      star.addEventListener("click", () => {
+        book.rating = Number(star.dataset.value);
+        saveBooks();
+        updateStars();
+
+        star.classList.remove("pop");
+        void star.offsetWidth;
+        star.classList.add("pop");
+
+        spawnConfetti(starsWrap, star);
+      });
+    });
+
+    stars.forEach((star) => {
+      star.addEventListener("mouseenter", () => {
+        const hovered = Number(star.dataset.value);
+        starsWrap.classList.add("hovering");
+
+        stars.forEach((s) => {
+          const v = Number(s.dataset.value);
+          s.classList.toggle("hover", v <= hovered);
+        });
+      });
+    });
+
+    starsWrap.addEventListener("mouseleave", () => {
+      starsWrap.classList.remove("hovering");
+      stars.forEach((s) => s.classList.remove("hover"));
+    });
 
     stars.forEach((star) => {
       star.addEventListener("click", () => {
@@ -276,6 +310,39 @@ function escapeHtml(str) {
   });
 }
 
+function spawnConfetti(starsWrap, starEl) {
+  const wrapRect = starsWrap.getBoundingClientRect();
+  const starRect = starEl.getBoundingClientRect();
+
+  const x = starRect.left - wrapRect.left + starRect.width / 2;
+  const y = starRect.top - wrapRect.top + starRect.height / 2;
+
+  const vectors = [
+    [0, -18],
+    [14, -10],
+    [18, 4],
+    [10, 16],
+    [-10, 16],
+    [-18, 2],
+  ];
+
+  vectors.forEach(([dx, dy], i) => {
+    const dot = document.createElement("span");
+    dot.className = "confetti";
+    dot.style.left = `${x}px`;
+    dot.style.top = `${y}px`;
+
+    dot.style.setProperty("--dx", `${dx}px`);
+    dot.style.setProperty("--dy", `${dy}px`);
+
+    const colors = ["#facc15", "#7c3aed", "#22c55e", "#f59e0b"];
+    dot.style.background = colors[i % colors.length];
+
+    starsWrap.appendChild(dot);
+
+    setTimeout(() => dot.remove(), 500);
+  });
+}
 
 function enterInlineEdit(card, book) {
   if (card.dataset.editing === "1") return;
@@ -302,8 +369,6 @@ function enterInlineEdit(card, book) {
     <button class="btn-danger inline-cancel" type="button">Cancel</button>
   </div>
 `;
-
-
 
   editor.querySelector(".edit-status").value = book.status;
   card.prepend(editor);
