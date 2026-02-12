@@ -378,6 +378,7 @@ function enterInlineEdit(card, book) {
     <option value="Reading">Reading</option>
     <option value="Read">Read</option>
     <option value="Want to Read">Want to Read</option>
+    <option value="DNF">DNF</option>
   </select>
 
   <div class="inline-actions">
