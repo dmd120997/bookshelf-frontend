@@ -64,7 +64,6 @@ function renderBooks(filter = currentFilter, page = currentPage) {
   currentFilter = filter;
   currentPage = page;
 
-  saveUiState({ currentFilter, currentPage });
 
   container.innerHTML = "";
 
@@ -74,6 +73,8 @@ function renderBooks(filter = currentFilter, page = currentPage) {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   if (currentPage > totalPages) currentPage = totalPages;
+
+  saveUiState({ currentFilter, currentPage });
 
   const start = (currentPage - 1) * pageSize;
   const pageItems = filtered.slice(start, start + pageSize);
@@ -413,7 +414,7 @@ function enterInlineEdit(card, book) {
     book.title = title;
     book.author = author;
     book.status = status;
-    
+
     if (book.status === Status.WANT_TO_READ) {
       book.rating = 0;
     }
@@ -437,6 +438,8 @@ function enterInlineEdit(card, book) {
   document.addEventListener(
     "pointerdown",
     (e) => {
+      if (e.target.closest("#theme-toggle")) return;
+
       if (!card.contains(e.target)) {
         cancel(); // save() for saving
       }
@@ -507,7 +510,7 @@ document.querySelectorAll(".filters button").forEach((btn) => {
   btn.addEventListener("click", () => {
     const filter = btn.dataset.filter;
     setActiveFilterButton(filter);
-    renderBooks(filter, 1);
+    renderBooks(filter, currentPage);
   });
 });
 
@@ -518,13 +521,17 @@ if (themeToggle) {
   document.body.dataset.theme = savedTheme;
   themeToggle.textContent = savedTheme === "dark" ? "🌙" : "☀️";
 
-  themeToggle.addEventListener("click", () => {
-    const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
+  themeToggle.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
 
-    document.body.dataset.theme = nextTheme;
-    localStorage.setItem("theme", nextTheme);
-    themeToggle.textContent = nextTheme === "dark" ? "🌙" : "☀️";
-  });
+  const nextTheme =
+    document.body.dataset.theme === "dark" ? "light" : "dark";
+
+  document.body.dataset.theme = nextTheme;
+  localStorage.setItem("theme", nextTheme);
+  themeToggle.textContent = nextTheme === "dark" ? "🌙" : "☀️";
+});
 }
 
 setActiveFilterButton(currentFilter);
