@@ -567,6 +567,38 @@ body:not([data-theme="light"]) .rating-stars span.active {
   cursor: not-allowed;
 }
 
+.search-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+#search {
+  padding-right: 36px;
+}
+
+.clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.search-wrap.has-value .clear-btn {
+  opacity: 0.6;
+  pointer-events: auto;
+}
+
+.clear-btn:hover {
+  opacity: 1;
+}
+
 .toolbar {
   display: flex;
   gap: 10px;

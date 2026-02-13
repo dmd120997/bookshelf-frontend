@@ -14,6 +14,7 @@ let { currentFilter, currentPage, sortMode, searchQuery } = loadUiState();
 const pageSize = 5;
 
 const searchInput = document.getElementById("search");
+const clearSearchBtn = document.getElementById("clear-search");
 const sortSelect = document.getElementById("sort");
 
 if (searchInput) searchInput.value = searchQuery;
@@ -41,6 +42,34 @@ if (cancelAddBtn) {
     form.reset();
   });
 }
+
+function updateClearButtonVisibility() {
+  const hasValue = searchInput.value.trim().length > 0;
+  searchInput.parentElement.classList.toggle("has-value", hasValue);
+}
+
+if (searchInput) {
+  searchInput.addEventListener("input", () => {
+    updateClearButtonVisibility();
+  });
+}
+
+if (clearSearchBtn) {
+  clearSearchBtn.addEventListener("click", () => {
+    searchInput.value = "";
+    searchQuery = "";
+    currentPage = 1;
+
+    updateClearButtonVisibility();
+    renderBooks(currentFilter, 1);
+  });
+}
+
+searchInput.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    clearSearchBtn.click();
+  }
+});
 
 document.addEventListener("pointerdown", (e) => {
   if (!form || form.classList.contains("is-hidden")) return;
