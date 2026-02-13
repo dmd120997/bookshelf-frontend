@@ -9,8 +9,15 @@ import {
 let books = loadBooks(defaultBooks);
 let editingBook = null;
 
-let { currentFilter, currentPage } = loadUiState();
+let { currentFilter, currentPage, sortMode, searchQuery } = loadUiState();
+
 const pageSize = 5;
+
+const searchInput = document.getElementById("search");
+const sortSelect = document.getElementById("sort");
+
+if (searchInput) searchInput.value = searchQuery;
+if (sortSelect) sortSelect.value = sortMode;
 
 const container = document.getElementById("book-container");
 const form = document.getElementById("book-form");
@@ -32,8 +39,6 @@ if (cancelAddBtn) {
     form.classList.add("is-hidden");
     if (openAddBtn) openAddBtn.style.display = "inline-flex";
     form.reset();
-    form.classList.add("is-hidden");
-    if (openAddBtn) openAddBtn.style.display = "inline-flex";
   });
 }
 
@@ -64,20 +69,21 @@ function renderBooks(filter = currentFilter, page = currentPage) {
   currentFilter = filter;
   currentPage = page;
 
-
   container.innerHTML = "";
 
-  const filtered = books.filter((b) =>
-    filter === "All" ? true : b.status === filter,
+  let result = books.filter((b) =>
+    currentFilter === "All" ? true : b.status === currentFilter,
   );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  if (currentPage > totalPages) currentPage = totalPages;
+  result = applySearch(result, searchQuery);
+  result = applySort(result, sortMode); 
 
-  saveUiState({ currentFilter, currentPage });
+  const totalPages = Math.max(1, Math.ceil(result.length / pageSize));
+  if (currentPage > totalPages) currentPage = totalPages;
+  saveUiState({ currentFilter, currentPage, sortMode, searchQuery });
 
   const start = (currentPage - 1) * pageSize;
-  const pageItems = filtered.slice(start, start + pageSize);
+  const pageItems = result.slice(start, start + pageSize);
 
   pageItems.forEach((book) => {
     const card = document.createElement("div");
@@ -85,8 +91,9 @@ function renderBooks(filter = currentFilter, page = currentPage) {
 
     card.innerHTML = `
   <div class="card-main">
-    <h3>${book.title}</h3>
+    <h3 title="${book.title}">${book.title}</h3>
     <p>${book.author}</p>
+    
     <p class="rating-text">${
       book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"
     }</p>
@@ -224,6 +231,71 @@ function renderBooks(filter = currentFilter, page = currentPage) {
   });
 
   renderPagination(totalPages);
+}
+
+function normalize(str) {
+  return String(str || "")
+    .toLowerCase()
+    .trim();
+}
+
+function applySearch(list, query) {
+  const q = normalize(query);
+  if (!q) return list;
+
+  return list.filter((b) => {
+    return normalize(b.title).includes(q) || normalize(b.author).includes(q);
+  });
+}
+
+function compareText(a, b) {
+  return a.localeCompare(b, undefined, { sensitivity: "base" });
+}
+
+function applySort(list, mode) {
+  const arr = [...list];
+
+  switch (mode) {
+    case "title-asc":
+      return arr.sort((a, b) => compareText(a.title, b.title));
+    case "title-desc":
+      return arr.sort((a, b) => compareText(b.title, a.title));
+    case "author-asc":
+      return arr.sort((a, b) => compareText(a.author, b.author));
+    case "author-desc":
+      return arr.sort((a, b) => compareText(b.author, a.author));
+    case "rating-desc":
+      return arr.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    case "rating-asc":
+      return arr.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+    default:
+      return arr;
+  }
+}
+
+function debounce(fn, ms = 200) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+}
+
+if (searchInput) {
+  searchInput.addEventListener(
+    "input",
+    debounce(() => {
+      searchQuery = searchInput.value;
+      renderBooks(currentFilter, 1);
+    }, 200),
+  );
+}
+
+if (sortSelect) {
+  sortSelect.addEventListener("change", () => {
+    sortMode = sortSelect.value;
+    renderBooks(currentFilter, currentPage);
+  });
 }
 
 function renderPagination(totalPages) {
@@ -522,16 +594,15 @@ if (themeToggle) {
   themeToggle.textContent = savedTheme === "dark" ? "🌙" : "☀️";
 
   themeToggle.addEventListener("click", (e) => {
-  e.preventDefault();
-  e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation();
 
-  const nextTheme =
-    document.body.dataset.theme === "dark" ? "light" : "dark";
+    const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
 
-  document.body.dataset.theme = nextTheme;
-  localStorage.setItem("theme", nextTheme);
-  themeToggle.textContent = nextTheme === "dark" ? "🌙" : "☀️";
-});
+    document.body.dataset.theme = nextTheme;
+    localStorage.setItem("theme", nextTheme);
+    themeToggle.textContent = nextTheme === "dark" ? "🌙" : "☀️";
+  });
 }
 
 setActiveFilterButton(currentFilter);

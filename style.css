@@ -228,17 +228,20 @@ body {
 
 .card-main {
   display: grid;
-  grid-template-rows: 56px 26px 26px;
+  grid-template-rows: minmax(56px, auto) 26px 26px;
   gap: 8px;
 }
 
 .card-main h3 {
   margin: 0;
   line-height: 1.2;
-  overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-height: calc(1.2em * 2);
+  overflow: hidden;
+  word-break: break-word;
+  cursor: help;
 }
 
 .card-main p {
@@ -562,4 +565,20 @@ body:not([data-theme="light"]) .rating-stars span.active {
   opacity: 0.45;
   filter: grayscale(0.2);
   cursor: not-allowed;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.toolbar .input {
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 12px;
+  outline: none;
+  min-width: 220px;
 }
