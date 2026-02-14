@@ -134,6 +134,10 @@ export default function App() {
   const [sortMode, setSortMode] = useState("title-asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newAuthor, setNewAuthor] = useState("");
+  const [newStatus, setNewStatus] = useState("Reading");
 
   const pageSize = 5;
 
@@ -228,10 +232,92 @@ export default function App() {
         </div>
 
         <div className="toolbar-actions">
-          <button className="btn-primary" type="button">
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={() => setIsAddOpen(true)}
+          >
             + Add book
           </button>
         </div>
+
+        {isAddOpen && (
+          <form
+            className="panel"
+            onSubmit={(event) => {
+              event.preventDefault();
+
+              const title = newTitle.trim();
+              const author = newAuthor.trim();
+              const status = newStatus;
+
+              if (!title || !author) return;
+
+              const createdBook = {
+                id: crypto.randomUUID(),
+                title,
+                author,
+                status,
+                rating: 0,
+              };
+
+              setBooks((prevBooks) => [...prevBooks, createdBook]);
+
+              setIsAddOpen(false);
+              setNewTitle("");
+              setNewAuthor("");
+              setNewStatus("Reading");
+
+              setCurrentPage(totalPages + 1);
+            }}
+          >
+            <div className="form-row">
+              <input
+                className="input"
+                type="text"
+                placeholder="Title"
+                value={newTitle}
+                onChange={(event) => setNewTitle(event.target.value)}
+                autoFocus
+              />
+              <input
+                className="input"
+                type="text"
+                placeholder="Author"
+                value={newAuthor}
+                onChange={(event) => setNewAuthor(event.target.value)}
+              />
+              <select
+                className="input"
+                value={newStatus}
+                onChange={(event) => setNewStatus(event.target.value)}
+              >
+                <option value="Reading">Reading</option>
+                <option value="Read">Read</option>
+                <option value="Want to Read">Want to Read</option>
+                <option value="DNF">DNF</option>
+              </select>
+            </div>
+
+            <div className="form-actions">
+              <button className="btn-primary" type="submit">
+                Add
+              </button>
+              <button
+                className="btn-ghost"
+                type="button"
+                onClick={() => {
+                  setIsAddOpen(false);
+                  setNewTitle("");
+                  setNewAuthor("");
+                  setNewStatus("Reading");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
 
         <div id="book-container">
           {pageItems.map((book) => (

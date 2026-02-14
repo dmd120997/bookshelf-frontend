@@ -163,10 +163,26 @@ body {
   box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 200px;
+  gap: 12px;
+}
+
 .form-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.btn-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  padding: 10px 14px;
+  border-radius: 14px;
+  cursor: pointer;
 }
 
 .book-form button {
