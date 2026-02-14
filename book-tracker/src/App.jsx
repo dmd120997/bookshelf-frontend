@@ -4,6 +4,8 @@ import "./styles.css";
 import { defaultBooks } from "./constants";
 import { loadBooks, saveBooks as persistBooks } from "./storage";
 
+const FILTERS = ["All", "Reading", "Read", "Want to Read", "DNF"];
+
 function BookCard({ book }) {
   return (
     <div className="card">
@@ -29,35 +31,35 @@ function BookCard({ book }) {
 }
 
 function normalize(text) {
-    return String(text || "")
-      .toLowerCase()
-      .trim();
-  }
+  return String(text || "")
+    .toLowerCase()
+    .trim();
+}
 
-  function compareText(a, b) {
-    return a.localeCompare(b, undefined, { sensitivity: "base" });
-  }
+function compareText(a, b) {
+  return a.localeCompare(b, undefined, { sensitivity: "base" });
+}
 
-  function applySort(list, mode) {
-    const arr = [...list];
+function applySort(list, mode) {
+  const arr = [...list];
 
-    switch (mode) {
-      case "title-asc":
-        return arr.sort((a, b) => compareText(a.title, b.title));
-      case "title-desc":
-        return arr.sort((a, b) => compareText(b.title, a.title));
-      case "author-asc":
-        return arr.sort((a, b) => compareText(a.author, b.author));
-      case "author-desc":
-        return arr.sort((a, b) => compareText(b.author, a.author));
-      case "rating-desc":
-        return arr.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      case "rating-asc":
-        return arr.sort((a, b) => (a.rating || 0) - (b.rating || 0));
-      default:
-        return arr;
-    }
+  switch (mode) {
+    case "title-asc":
+      return arr.sort((a, b) => compareText(a.title, b.title));
+    case "title-desc":
+      return arr.sort((a, b) => compareText(b.title, a.title));
+    case "author-asc":
+      return arr.sort((a, b) => compareText(a.author, b.author));
+    case "author-desc":
+      return arr.sort((a, b) => compareText(b.author, a.author));
+    case "rating-desc":
+      return arr.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    case "rating-asc":
+      return arr.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+    default:
+      return arr;
   }
+}
 
 export default function App() {
   const [books, setBooks] = useState(() => loadBooks(defaultBooks));
@@ -71,8 +73,6 @@ export default function App() {
   useEffect(() => {
     persistBooks(books);
   }, [books]);
-
-  
 
   const filteredBooks = books.filter((book) =>
     currentFilter === "All" ? true : book.status === currentFilter,
@@ -102,10 +102,25 @@ export default function App() {
       <div className="container">
         <h1>My Book Tracker</h1>
 
+        <div className="filters">
+          {FILTERS.map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              className={currentFilter === filter ? "active" : ""}
+              onClick={() => {
+                setCurrentFilter(filter);
+                setCurrentPage(1);
+              }}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+
         <div className="toolbar">
           <div className={`search-wrap ${searchQuery ? "has-value" : ""}`}>
             <input
-              id="search"
               className="input"
               type="search"
               placeholder="Search by title or author..."
@@ -116,7 +131,6 @@ export default function App() {
               }}
             />
             <button
-              id="clear-search"
               type="button"
               className="clear-btn"
               onClick={() => {
@@ -130,7 +144,6 @@ export default function App() {
           </div>
 
           <select
-            id="sort"
             className="input"
             value={sortMode}
             onChange={(event) => {
@@ -145,6 +158,12 @@ export default function App() {
             <option value="rating-desc">Rating (high → low)</option>
             <option value="rating-asc">Rating (low → high)</option>
           </select>
+        </div>
+
+        <div className="toolbar-actions">
+          <button className="btn-primary" type="button">
+            + Add book
+          </button>
         </div>
 
         <div id="book-container">
