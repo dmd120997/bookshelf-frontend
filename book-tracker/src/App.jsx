@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import "./styles.css";
 
 import { defaultBooks } from "./constants";
@@ -6,7 +6,106 @@ import { loadBooks, saveBooks as persistBooks } from "./storage";
 
 const FILTERS = ["All", "Reading", "Read", "Want to Read", "DNF"];
 
-function BookCard({ book }) {
+function RatingStars({ rating, isDisabled, onChangeRating }) {
+  const wrapRef = useRef(null);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [poppedStarValue, setPoppedStarValue] = useState(null);
+  const [confettiPieces, setConfettiPieces] = useState([]);
+
+  const displayRating = hoverRating || rating;
+
+  const starValues = useMemo(() => [1, 2, 3, 4, 5], []);
+
+  function createConfettiPieces(leftPx, topPx) {
+    const colors = ["#facc15", "#fb7185", "#60a5fa", "#34d399", "#a78bfa"];
+
+    const pieces = Array.from({ length: 12 }, () => {
+      const deltaX = Math.round((Math.random() * 2 - 1) * 28);
+      const deltaY = Math.round(-(Math.random() * 30 + 10));
+      const color = colors[Math.floor(Math.random() * colors.length)];
+
+      return {
+        id: crypto.randomUUID(),
+        style: {
+          "--dx": `${deltaX}px`,
+          "--dy": `${deltaY}px`,
+          left: `${leftPx}px`,
+          top: `${topPx}px`,
+          background: color,
+        },
+      };
+    });
+
+    setConfettiPieces(pieces);
+    window.setTimeout(() => setConfettiPieces([]), 450);
+  }
+
+  function handleClickStar(starValue, clickEvent) {
+    if (isDisabled) return;
+
+    onChangeRating(starValue);
+
+    setPoppedStarValue(starValue);
+    window.setTimeout(() => setPoppedStarValue(null), 220);
+
+    const wrapElement = wrapRef.current;
+    if (!wrapElement) return;
+
+    const wrapRect = wrapElement.getBoundingClientRect();
+    const starRect = clickEvent.currentTarget.getBoundingClientRect();
+
+    const leftPx = starRect.left - wrapRect.left + starRect.width / 2;
+    const topPx = starRect.top - wrapRect.top + starRect.height / 2;
+
+    createConfettiPieces(leftPx, topPx);
+  }
+
+  return (
+    <div
+      ref={wrapRef}
+      className={`rating-stars ${isDisabled ? "is-disabled" : ""}`}
+      onMouseLeave={() => setHoverRating(0)}
+      aria-label="Rating"
+    >
+      {starValues.map((starValue) => (
+        <span
+          key={starValue}
+          className={[
+            starValue <= displayRating ? "filled" : "",
+            poppedStarValue === starValue ? "pop" : "",
+          ]
+            .join(" ")
+            .trim()}
+          onMouseEnter={() => !isDisabled && setHoverRating(starValue)}
+          onClick={(event) => handleClickStar(starValue, event)}
+          role="button"
+          tabIndex={isDisabled ? -1 : 0}
+          onKeyDown={(keyboardEvent) => {
+            if (isDisabled) return;
+            if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
+              keyboardEvent.preventDefault();
+              handleClickStar(starValue);
+            }
+          }}
+          aria-label={`Set rating ${starValue}`}
+        >
+          {starValue <= displayRating ? "★" : "☆"}
+        </span>
+      ))}
+
+      {confettiPieces.map((piece) => (
+        <span
+          key={piece.id}
+          className="confetti"
+          style={piece.style}
+          aria-hidden="true"
+        />
+      ))}
+    </div>
+  );
+}
+
+function BookCard({ book, onChangeRating }) {
   return (
     <div className="card">
       <div className="card-main">
@@ -25,6 +124,12 @@ function BookCard({ book }) {
             {book.status}
           </span>
         </div>
+
+        <RatingStars
+          rating={book.rating ?? 0}
+          isDisabled={book.status === "Want to Read"}
+          onChangeRating={(newRating) => onChangeRating(book, newRating)}
+        />
       </div>
     </div>
   );
@@ -134,16 +239,53 @@ export default function App() {
   const [sortMode, setSortMode] = useState("title-asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newAuthor, setNewAuthor] = useState("");
   const [newStatus, setNewStatus] = useState("Reading");
 
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("book-tracker-theme") || "dark";
+  });
+
   const pageSize = 5;
+
+  function handleChangeBookRating(bookToUpdate, newRating) {
+    setBooks((previousBooks) =>
+      previousBooks.map((book) => {
+        if (book.id && bookToUpdate.id) {
+          return book.id === bookToUpdate.id
+            ? { ...book, rating: newRating }
+            : book;
+        }
+
+        const sameKey =
+          book.title === bookToUpdate.title &&
+          book.author === bookToUpdate.author;
+
+        return sameKey ? { ...book, rating: newRating } : book;
+      }),
+    );
+  }
 
   useEffect(() => {
     persistBooks(books);
   }, [books]);
+
+  useEffect(() => {
+    if (theme === "light") {
+      document.body.setAttribute("data-theme", "light");
+    } else {
+      document.body.removeAttribute("data-theme");
+    }
+
+    localStorage.setItem("book-tracker-theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+  };
 
   const filteredBooks = books.filter((book) =>
     currentFilter === "All" ? true : book.status === currentFilter,
@@ -171,8 +313,19 @@ export default function App() {
   return (
     <div className="app">
       <div className="container">
-        <h1>My Book Tracker</h1>
+        <div className="theme-toggle">
+          <button
+            type="button"
+            className="theme-btn"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
+            {theme === "light" ? "🌙" : "🌞"}
+          </button>
+        </div>
 
+        <h1>My Book Tracker</h1>
         <div className="filters">
           {FILTERS.map((filter) => (
             <button
@@ -192,8 +345,9 @@ export default function App() {
         <div className="toolbar">
           <div className={`search-wrap ${searchQuery ? "has-value" : ""}`}>
             <input
+              id="search"
               className="input"
-              type="search"
+              type="text"
               placeholder="Search by title or author..."
               value={searchQuery}
               onChange={(event) => {
@@ -201,16 +355,20 @@ export default function App() {
                 setCurrentPage(1);
               }}
             />
+
             <button
               type="button"
-              className="clear-btn"
+              className="search-icon-btn"
               onClick={() => {
-                setSearchQuery("");
-                setCurrentPage(1);
+                if (searchQuery) {
+                  setSearchQuery("");
+                  setCurrentPage(1);
+                }
               }}
-              aria-label="Clear search"
+              aria-label={searchQuery ? "Clear search" : "Search"}
+              title={searchQuery ? "Clear" : "Search"}
             >
-              ×
+              {searchQuery ? "×" : "🔍"}
             </button>
           </div>
 
@@ -321,14 +479,18 @@ export default function App() {
 
         <div id="book-container">
           {pageItems.map((book) => (
-            <BookCard key={`${book.title}-${book.author}`} book={book} />
+            <BookCard
+              key={book.id ?? `${book.title}-${book.author}`}
+              book={book}
+              onChangeRating={handleChangeBookRating}
+            />
           ))}
-          <Pagination
-            currentPage={safePage}
-            totalPages={totalPages}
-            onChangePage={(page) => setCurrentPage(page)}
-          />
         </div>
+        <Pagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          onChangePage={(page) => setCurrentPage(page)}
+        />
       </div>
     </div>
   );
