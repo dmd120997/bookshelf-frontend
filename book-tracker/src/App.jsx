@@ -401,7 +401,7 @@ export default function App() {
 
         {isAddOpen && (
           <form
-            className="panel"
+            className="panel panel-form"
             onSubmit={(event) => {
               event.preventDefault();
 
@@ -429,24 +429,26 @@ export default function App() {
               setCurrentPage(totalPages + 1);
             }}
           >
-            <div className="form-row">
+            <div className="form-row form-row--pill">
               <input
-                className="input"
+                className="input input--pill"
                 type="text"
-                placeholder="Title"
+                placeholder="Book title"
                 value={newTitle}
                 onChange={(event) => setNewTitle(event.target.value)}
                 autoFocus
               />
+
               <input
-                className="input"
+                className="input input--pill"
                 type="text"
                 placeholder="Author"
                 value={newAuthor}
                 onChange={(event) => setNewAuthor(event.target.value)}
               />
+
               <select
-                className="input"
+                className="input input--pill input--select"
                 value={newStatus}
                 onChange={(event) => setNewStatus(event.target.value)}
               >
@@ -455,24 +457,25 @@ export default function App() {
                 <option value="Want to Read">Want to Read</option>
                 <option value="DNF">DNF</option>
               </select>
-            </div>
 
-            <div className="form-actions">
-              <button className="btn-primary" type="submit">
-                Add
-              </button>
-              <button
-                className="btn-ghost"
-                type="button"
-                onClick={() => {
-                  setIsAddOpen(false);
-                  setNewTitle("");
-                  setNewAuthor("");
-                  setNewStatus("Reading");
-                }}
-              >
-                Cancel
-              </button>
+              <div className="form-actions form-actions--inline">
+                <button className="btn-primary btn-primary--pill" type="submit">
+                  Save
+                </button>
+
+                <button
+                  className="btn-danger btn-danger--pill"
+                  type="button"
+                  onClick={() => {
+                    setIsAddOpen(false);
+                    setNewTitle("");
+                    setNewAuthor("");
+                    setNewStatus("Reading");
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </form>
         )}
