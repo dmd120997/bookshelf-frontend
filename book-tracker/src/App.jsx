@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import "./styles.css";
 
-import { defaultBooks } from "./constants";
+import { Status } from "./constants";
 import { loadBooks, saveBooks as persistBooks } from "./storage";
 
 const FILTERS = ["All", "Reading", "Read", "Want to Read", "DNF"];
@@ -11,6 +11,7 @@ function RatingStars({ rating, isDisabled, onChangeRating }) {
   const [hoverRating, setHoverRating] = useState(0);
   const [poppedStarValue, setPoppedStarValue] = useState(null);
   const [confettiPieces, setConfettiPieces] = useState([]);
+  const addFormRef = useRef(null);
 
   const displayRating = hoverRating || rating;
 
@@ -105,32 +106,175 @@ function RatingStars({ rating, isDisabled, onChangeRating }) {
   );
 }
 
-function BookCard({ book, onChangeRating }) {
+function BookCard({ book, onChangeRating, onDeleteBook, onEditBook }) {
+  const cardRef = useRef(null);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(book.title ?? "");
+  const [editAuthor, setEditAuthor] = useState(book.author ?? "");
+  const [editStatus, setEditStatus] = useState(book.status ?? "Reading");
+
+  function openEditor() {
+    setEditTitle(book.title ?? "");
+    setEditAuthor(book.author ?? "");
+    setEditStatus(book.status ?? "Reading");
+    setIsEditing(true);
+  }
+
+  function closeEditor() {
+    setIsEditing(false);
+  }
+
+  useEffect(() => {
+    if (!isEditing) return;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        closeEditor();
+      }
+    }
+
+    function handlePointerDown(event) {
+      const cardElement = cardRef.current;
+      if (!cardElement) return;
+
+      if (!cardElement.contains(event.target)) {
+        closeEditor();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("pointerdown", handlePointerDown, true);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+    };
+  }, [isEditing]);
+
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    const title = editTitle.trim();
+    const author = editAuthor.trim();
+    const status = editStatus;
+
+    if (!title || !author) return;
+
+    onEditBook(book, { title, author, status });
+    closeEditor();
+  }
+
   return (
-    <div className="card">
-      <div className="card-main">
-        <h3 title={book.title}>{book.title}</h3>
-        <p>{book.author}</p>
-        <p className="rating-text">
-          {book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"}
-        </p>
-      </div>
+    <div
+      ref={cardRef}
+      className="card"
+      onDoubleClick={(event) => {
+        const targetNode = event.target;
 
-      <div className="card-spacer"></div>
+        if (!(targetNode instanceof Element)) {
+          openEditor();
+          return;
+        }
 
-      <div className="card-meta">
-        <div className="status-row">
-          <span className={`badge badge--${book.status.split(" ").join("-")}`}>
-            {book.status}
-          </span>
-        </div>
+        const isInteractive = targetNode.closest(
+          "button, a, input, select, textarea, .rating-stars",
+        );
 
-        <RatingStars
-          rating={book.rating ?? 0}
-          isDisabled={book.status === "Want to Read"}
-          onChangeRating={(newRating) => onChangeRating(book, newRating)}
-        />
-      </div>
+        if (isInteractive) return;
+
+        openEditor();
+      }}
+    >
+      {isEditing ? (
+        <form className="inline-editor" onSubmit={handleSubmit}>
+          <input
+            className="input"
+            type="text"
+            value={editTitle}
+            onChange={(event) => setEditTitle(event.target.value)}
+            autoFocus
+          />
+
+          <input
+            className="input"
+            type="text"
+            value={editAuthor}
+            onChange={(event) => setEditAuthor(event.target.value)}
+          />
+
+          <select
+            className="input"
+            value={editStatus}
+            onChange={(event) => setEditStatus(event.target.value)}
+          >
+            <option value="Reading">Reading</option>
+            <option value="Read">Read</option>
+            <option value="Want to Read">Want to Read</option>
+            <option value="DNF">DNF</option>
+          </select>
+
+          <div className="inline-actions">
+            <button className="btn-primary" type="submit">
+              Save
+            </button>
+
+            <button className="btn-danger" type="button" onClick={closeEditor}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <div className="card-main">
+            <h3 title={book.title}>{book.title}</h3>
+            <p>{book.author}</p>
+            <p className="rating-text">
+              {book.rating > 0 ? `${book.rating} / 5 ⭐` : "not rated ⭐"}
+            </p>
+          </div>
+
+          <div className="card-spacer"></div>
+
+          <div className="card-meta">
+            <div className="status-row">
+              <span
+                className={`badge badge--${book.status.split(" ").join("-")}`}
+              >
+                {book.status}
+              </span>
+            </div>
+
+            <RatingStars
+              rating={book.rating ?? 0}
+              isDisabled={book.status === "Want to Read"}
+              onChangeRating={(newRating) => onChangeRating(book, newRating)}
+            />
+          </div>
+
+          <div className="card-actions">
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={openEditor}
+              aria-label="Edit"
+              title="Edit"
+            >
+              ✏️
+            </button>
+
+            <button
+              type="button"
+              className="icon-btn delete-btn"
+              onClick={() => onDeleteBook(book)}
+              aria-label="Delete"
+              title="Delete"
+            >
+              🗑️
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -140,7 +284,6 @@ function normalize(text) {
     .toLowerCase()
     .trim();
 }
-
 function compareText(a, b) {
   return a.localeCompare(b, undefined, { sensitivity: "base" });
 }
@@ -234,7 +377,7 @@ function Pagination({ currentPage, totalPages, onChangePage }) {
 }
 
 export default function App() {
-  const [books, setBooks] = useState(() => loadBooks(defaultBooks));
+  const [books, setBooks] = useState(() => loadBooks([]));
   const [currentFilter, setCurrentFilter] = useState("All");
   const [sortMode, setSortMode] = useState("title-asc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -244,12 +387,35 @@ export default function App() {
   const [newTitle, setNewTitle] = useState("");
   const [newAuthor, setNewAuthor] = useState("");
   const [newStatus, setNewStatus] = useState("Reading");
+  const addFormRef = useRef(null);
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("book-tracker-theme") || "dark";
   });
 
   const pageSize = 5;
+
+  function closeAddForm() {
+    setIsAddOpen(false);
+    setNewTitle("");
+    setNewAuthor("");
+    setNewStatus("Reading");
+  }
+  useEffect(() => {
+    if (!isAddOpen) return;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        closeAddForm();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isAddOpen]);
 
   function handleChangeBookRating(bookToUpdate, newRating) {
     setBooks((previousBooks) =>
@@ -268,6 +434,74 @@ export default function App() {
       }),
     );
   }
+
+  function handleDeleteBook(bookToDelete) {
+    setBooks((previousBooks) =>
+      previousBooks.filter((book) => {
+        if (book.id && bookToDelete.id) return book.id !== bookToDelete.id;
+
+        const sameKey =
+          book.title === bookToDelete.title &&
+          book.author === bookToDelete.author;
+
+        return !sameKey;
+      }),
+    );
+  }
+
+  function handleEditBook(bookToUpdate, updates) {
+    const nextStatus = String(updates.status ?? "").trim();
+    const isWantToRead = nextStatus.toLowerCase() === "want to read";
+
+    const normalizedUpdates = {
+      ...updates,
+      status: nextStatus || updates.status,
+      ...(isWantToRead ? { rating: 0 } : {}),
+    };
+
+    setBooks((previousBooks) =>
+      previousBooks.map((book) => {
+        if (book.id && bookToUpdate.id) {
+          return book.id === bookToUpdate.id
+            ? { ...book, ...normalizedUpdates }
+            : book;
+        }
+
+        const sameKey =
+          book.title === bookToUpdate.title &&
+          book.author === bookToUpdate.author;
+
+        return sameKey ? { ...book, ...normalizedUpdates } : book;
+      }),
+    );
+  }
+
+  useEffect(() => {
+    if (!isAddOpen) return;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        closeAddForm();
+      }
+    }
+
+    function handlePointerDown(event) {
+      const formElement = addFormRef.current;
+      if (!formElement) return;
+
+      if (!formElement.contains(event.target)) {
+        closeAddForm();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("pointerdown", handlePointerDown, true);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+    };
+  }, [isAddOpen]);
 
   useEffect(() => {
     persistBooks(books);
@@ -290,6 +524,23 @@ export default function App() {
   const filteredBooks = books.filter((book) =>
     currentFilter === "All" ? true : book.status === currentFilter,
   );
+
+  useEffect(() => {
+    if (!searchQuery) return;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setSearchQuery("");
+        setCurrentPage(1);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [searchQuery]);
 
   const searchedBooks = filteredBooks.filter((book) => {
     const q = normalize(searchQuery);
@@ -401,6 +652,7 @@ export default function App() {
 
         {isAddOpen && (
           <form
+            ref={addFormRef}
             className="panel panel-form"
             onSubmit={(event) => {
               event.preventDefault();
@@ -466,12 +718,7 @@ export default function App() {
                 <button
                   className="btn-danger btn-danger--pill"
                   type="button"
-                  onClick={() => {
-                    setIsAddOpen(false);
-                    setNewTitle("");
-                    setNewAuthor("");
-                    setNewStatus("Reading");
-                  }}
+                  onClick={closeAddForm}
                 >
                   Cancel
                 </button>
@@ -486,8 +733,16 @@ export default function App() {
               key={book.id ?? `${book.title}-${book.author}`}
               book={book}
               onChangeRating={handleChangeBookRating}
+              onDeleteBook={handleDeleteBook}
+              onEditBook={handleEditBook}
             />
           ))}
+          {pageItems.length === 0 && (
+            <div className="empty-state">
+              <p>No books yet.</p>
+              <p>Click "+ Add book" to get started 📚</p>
+            </div>
+          )}
         </div>
         <Pagination
           currentPage={safePage}

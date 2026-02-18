@@ -5,17 +5,4 @@ export const Status = {
   DNF: "DNF",
 };
 
-export const defaultBooks = [
-  {
-    title: "The Hobbit",
-    author: "J.R.R. Tolkien",
-    status: Status.READING,
-    rating: 0,
-  },
-  {
-    title: "Harry Potter",
-    author: "J. Rowling",
-    status: Status.READ,
-    rating: 0,
-  },
-];
+

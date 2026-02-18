@@ -241,7 +241,9 @@ body {
 .card-actions {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 
 .icon-btn {
@@ -375,11 +377,8 @@ select:focus-visible {
     transform 0.15s ease,
     filter 0.2s ease,
     opacity 0.2s ease;
-  color: rgba(15, 23, 42, 0.35);
-}
-
-body:not([data-theme="light"]) .rating-stars span {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(250, 204, 21, 0.35);
+  text-shadow: 0 0 2px rgba(250, 204, 21, 0.6);
 }
 
 .rating-stars span.active {
@@ -577,7 +576,6 @@ body:not([data-theme="light"]) .rating-stars span.active {
 }
 
 .pagination {
-  position: sticky;
   bottom: 12px;
 
   background: var(--panel);
@@ -713,4 +711,11 @@ body[data-theme="light"] .pagination button {
   .btn-danger.btn-danger--pill {
     width: 100%;
   }
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  opacity: 0.6;
+  padding: 60px 0;
 }
