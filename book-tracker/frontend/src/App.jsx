@@ -1,25 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./styles.css";
 
 import BookCard from "./components/BookCard";
 import Pagination from "./components/Pagination";
 
-import {
-  loadBooks,
-  saveBooks as persistBooks,
-} from "./lib/storage/booksStorage";
+import { getBooks, createBook, updateBook, deleteBook } from "./lib/api/booksApi";
 import { loadTheme, saveTheme } from "./lib/storage/themeStorage";
-import {
-  applySort,
-  selectFilteredBooks,
-  selectSearchedBooks,
-  selectPagedBooks,
-} from "./lib/books/booksView";
 
 const FILTERS = ["All", "Reading", "Read", "Want to Read", "DNF"];
 
 export default function App() {
-  const [books, setBooks] = useState(() => loadBooks([]));
+  const [books, setBooks] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+
   const [currentFilter, setCurrentFilter] = useState("All");
   const [sortMode, setSortMode] = useState("title-asc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,69 +37,72 @@ export default function App() {
     setNewStatus("Reading");
   }
 
-  function handleChangeBookRating(bookToUpdate, newRating) {
-    setBooks((previousBooks) =>
-      previousBooks.map((book) => {
-        if (book.id && bookToUpdate.id) {
-          return book.id === bookToUpdate.id
-            ? { ...book, rating: newRating }
-            : book;
-        }
+  async function reloadBooks(requestedPage = currentPage) {
+    setIsLoading(true);
+    setLoadError("");
 
-        const sameKey =
-          book.title === bookToUpdate.title &&
-          book.author === bookToUpdate.author;
+    try {
+      const result = await getBooks({
+        status: currentFilter,
+        search: searchQuery,
+        sort: sortMode,
+        page: requestedPage,
+        pageSize,
+      });
 
-        return sameKey ? { ...book, rating: newRating } : book;
-      }),
-    );
+      setBooks(result.data);
+      setTotalPages(result.meta.totalPages);
+
+      // если сервер сказал, что страниц меньше (например после удаления)
+      const safePage = Math.min(requestedPage, result.meta.totalPages);
+      if (safePage !== currentPage) setCurrentPage(safePage);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Failed to load");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  function handleDeleteBook(bookToDelete) {
-    setBooks((previousBooks) =>
-      previousBooks.filter((book) => {
-        if (book.id && bookToDelete.id) return book.id !== bookToDelete.id;
-
-        const sameKey =
-          book.title === bookToDelete.title &&
-          book.author === bookToDelete.author;
-
-        return !sameKey;
-      }),
-    );
-  }
-
-  function handleEditBook(bookToUpdate, updates) {
-    const nextStatus = String(updates.status ?? "").trim();
-    const isWantToRead = nextStatus.toLowerCase() === "want to read";
-
-    const normalizedUpdates = {
-      ...updates,
-      status: nextStatus || updates.status,
-      ...(isWantToRead ? { rating: 0 } : {}),
-    };
-
-    setBooks((previousBooks) =>
-      previousBooks.map((book) => {
-        if (book.id && bookToUpdate.id) {
-          return book.id === bookToUpdate.id
-            ? { ...book, ...normalizedUpdates }
-            : book;
-        }
-
-        const sameKey =
-          book.title === bookToUpdate.title &&
-          book.author === bookToUpdate.author;
-
-        return sameKey ? { ...book, ...normalizedUpdates } : book;
-      }),
-    );
-  }
-
+  // загрузка списка при изменении фильтра/поиска/сортировки/страницы
   useEffect(() => {
-    persistBooks(books);
-  }, [books]);
+    let isCancelled = false;
 
+    async function load() {
+      setIsLoading(true);
+      setLoadError("");
+
+      try {
+        const result = await getBooks({
+          status: currentFilter,
+          search: searchQuery,
+          sort: sortMode,
+          page: currentPage,
+          pageSize,
+        });
+
+        if (isCancelled) return;
+
+        setBooks(result.data);
+        setTotalPages(result.meta.totalPages);
+
+        const safePage = Math.min(currentPage, result.meta.totalPages);
+        if (safePage !== currentPage) setCurrentPage(safePage);
+      } catch (error) {
+        if (isCancelled) return;
+        setLoadError(error instanceof Error ? error.message : "Failed to load");
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentFilter, searchQuery, sortMode, currentPage, pageSize]);
+
+  // тема
   useEffect(() => {
     if (theme === "light") {
       document.body.setAttribute("data-theme", "light");
@@ -119,6 +117,7 @@ export default function App() {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
+  // Escape + click outside для add form
   useEffect(() => {
     if (!isAddOpen) return;
 
@@ -142,6 +141,7 @@ export default function App() {
     };
   }, [isAddOpen]);
 
+  // Escape для search
   useEffect(() => {
     if (!searchQuery) return;
 
@@ -159,29 +159,24 @@ export default function App() {
     };
   }, [searchQuery]);
 
-  const filteredBooks = useMemo(
-    () => selectFilteredBooks(books, currentFilter),
-    [books, currentFilter],
-  );
+  // CRUD через API
+  async function handleChangeBookRating(bookToUpdate, newRating) {
+    if (!bookToUpdate?.id) return;
+    await updateBook(bookToUpdate.id, { rating: newRating });
+    await reloadBooks();
+  }
 
-  const searchedBooks = useMemo(
-    () => selectSearchedBooks(filteredBooks, searchQuery),
-    [filteredBooks, searchQuery],
-  );
+  async function handleDeleteBook(bookToDelete) {
+    if (!bookToDelete?.id) return;
+    await deleteBook(bookToDelete.id);
+    await reloadBooks();
+  }
 
-  const sortedBooks = useMemo(
-    () => applySort(searchedBooks, sortMode),
-    [searchedBooks, sortMode],
-  );
-
-  const { pageItems, totalPages, safePage } = useMemo(
-    () => selectPagedBooks(sortedBooks, currentPage, pageSize),
-    [sortedBooks, currentPage],
-  );
-
-  useEffect(() => {
-    if (currentPage !== safePage) setCurrentPage(safePage);
-  }, [currentPage, safePage]);
+  async function handleEditBook(bookToUpdate, updates) {
+    if (!bookToUpdate?.id) return;
+    await updateBook(bookToUpdate.id, updates);
+    await reloadBooks();
+  }
 
   return (
     <div className="app">
@@ -264,11 +259,7 @@ export default function App() {
         </div>
 
         <div className="toolbar-actions">
-          <button
-            className="btn-primary"
-            type="button"
-            onClick={() => setIsAddOpen(true)}
-          >
+          <button className="btn-primary" type="button" onClick={() => setIsAddOpen(true)}>
             + Add book
           </button>
         </div>
@@ -277,7 +268,7 @@ export default function App() {
           <form
             ref={addFormRef}
             className="panel panel-form"
-            onSubmit={(event) => {
+            onSubmit={async (event) => {
               event.preventDefault();
 
               const title = newTitle.trim();
@@ -286,18 +277,11 @@ export default function App() {
 
               if (!title || !author) return;
 
-              const createdBook = {
-                id: crypto.randomUUID(),
-                title,
-                author,
-                status,
-                rating: 0,
-              };
-
-              setBooks((prevBooks) => [...prevBooks, createdBook]);
+              await createBook({ title, author, status, rating: 0 });
 
               closeAddForm();
-              setCurrentPage(totalPages + 1);
+              setCurrentPage(1); // просто и надёжно
+              await reloadBooks(1);
             }}
           >
             <div className="form-row form-row--pill">
@@ -330,7 +314,7 @@ export default function App() {
               </select>
 
               <div className="form-actions form-actions--inline">
-                <button className="btn-primary btn-primary--pill" type="submit">
+                <button className="btn-primary btn-primary--pill" type="submit" disabled={isLoading}>
                   Save
                 </button>
 
@@ -338,6 +322,7 @@ export default function App() {
                   className="btn-danger btn-danger--pill"
                   type="button"
                   onClick={closeAddForm}
+                  disabled={isLoading}
                 >
                   Cancel
                 </button>
@@ -346,18 +331,27 @@ export default function App() {
           </form>
         )}
 
-        <div id="book-container">
-          {pageItems.map((book) => (
-            <BookCard
-              key={book.id ?? `${book.title}-${book.author}`}
-              book={book}
-              onChangeRating={handleChangeBookRating}
-              onDeleteBook={handleDeleteBook}
-              onEditBook={handleEditBook}
-            />
-          ))}
+        {loadError && (
+          <div className="panel" style={{ marginTop: 12 }}>
+            <p style={{ margin: 0 }}>Error: {loadError}</p>
+          </div>
+        )}
 
-          {pageItems.length === 0 && (
+        <div id="book-container">
+          {isLoading && <div className="empty-state"><p>Loading...</p></div>}
+
+          {!isLoading &&
+            books.map((book) => (
+              <BookCard
+                key={book.id}
+                book={book}
+                onChangeRating={handleChangeBookRating}
+                onDeleteBook={handleDeleteBook}
+                onEditBook={handleEditBook}
+              />
+            ))}
+
+          {!isLoading && books.length === 0 && (
             <div className="empty-state">
               <p>No books yet.</p>
               <p>Click "+ Add book" to get started 📚</p>
@@ -366,7 +360,7 @@ export default function App() {
         </div>
 
         <Pagination
-          currentPage={safePage}
+          currentPage={currentPage}
           totalPages={totalPages}
           onChangePage={(page) => setCurrentPage(page)}
         />
