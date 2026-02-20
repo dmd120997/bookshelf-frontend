@@ -4,7 +4,12 @@ import "./styles.css";
 import BookCard from "./components/BookCard";
 import Pagination from "./components/Pagination";
 
-import { getBooks, createBook, updateBook, deleteBook } from "./lib/api/booksApi";
+import {
+  getBooks,
+  createBook,
+  updateBook,
+  deleteBook,
+} from "./lib/api/booksApi";
 import { loadTheme, saveTheme } from "./lib/storage/themeStorage";
 
 const FILTERS = ["All", "Reading", "Read", "Want to Read", "DNF"];
@@ -53,7 +58,6 @@ export default function App() {
       setBooks(result.data);
       setTotalPages(result.meta.totalPages);
 
-      // если сервер сказал, что страниц меньше (например после удаления)
       const safePage = Math.min(requestedPage, result.meta.totalPages);
       if (safePage !== currentPage) setCurrentPage(safePage);
     } catch (error) {
@@ -63,7 +67,6 @@ export default function App() {
     }
   }
 
-  // загрузка списка при изменении фильтра/поиска/сортировки/страницы
   useEffect(() => {
     let isCancelled = false;
 
@@ -117,7 +120,6 @@ export default function App() {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
-  // Escape + click outside для add form
   useEffect(() => {
     if (!isAddOpen) return;
 
@@ -141,7 +143,6 @@ export default function App() {
     };
   }, [isAddOpen]);
 
-  // Escape для search
   useEffect(() => {
     if (!searchQuery) return;
 
@@ -159,11 +160,21 @@ export default function App() {
     };
   }, [searchQuery]);
 
-  // CRUD через API
   async function handleChangeBookRating(bookToUpdate, newRating) {
     if (!bookToUpdate?.id) return;
-    await updateBook(bookToUpdate.id, { rating: newRating });
-    await reloadBooks();
+
+    setBooks((prev) =>
+      prev.map((book) =>
+        book.id === bookToUpdate.id ? { ...book, rating: newRating } : book,
+      ),
+    );
+
+    try {
+      await updateBook(bookToUpdate.id, { rating: newRating });
+    } catch (error) {
+      console.error(error);
+      await reloadBooks();
+    }
   }
 
   async function handleDeleteBook(bookToDelete) {
@@ -259,7 +270,11 @@ export default function App() {
         </div>
 
         <div className="toolbar-actions">
-          <button className="btn-primary" type="button" onClick={() => setIsAddOpen(true)}>
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={() => setIsAddOpen(true)}
+          >
             + Add book
           </button>
         </div>
@@ -280,7 +295,7 @@ export default function App() {
               await createBook({ title, author, status, rating: 0 });
 
               closeAddForm();
-              setCurrentPage(1); // просто и надёжно
+              setCurrentPage(1);
               await reloadBooks(1);
             }}
           >
@@ -314,7 +329,11 @@ export default function App() {
               </select>
 
               <div className="form-actions form-actions--inline">
-                <button className="btn-primary btn-primary--pill" type="submit" disabled={isLoading}>
+                <button
+                  className="btn-primary btn-primary--pill"
+                  type="submit"
+                  disabled={isLoading}
+                >
                   Save
                 </button>
 
@@ -338,7 +357,11 @@ export default function App() {
         )}
 
         <div id="book-container">
-          {isLoading && <div className="empty-state"><p>Loading...</p></div>}
+          {isLoading && (
+            <div className="empty-state">
+              <p>Loading...</p>
+            </div>
+          )}
 
           {!isLoading &&
             books.map((book) => (
